@@ -1,0 +1,2381 @@
+@import 'tailwindcss' source('.');
+
+/* Programa da Mostra: a festival catalogue screened in a dark room.
+   Ground and ink come from the screening room and the catalogue page; edition yellow is printed flat.
+   The raw tokens mirror DESIGN.md; @theme below hands them to Tailwind and to the coss components. */
+:root {
+  --ground-rgb: 19 17 14;
+  --ground: rgb(var(--ground-rgb));
+  --ground-deep: #0c0b09;
+  --ground-raised: #1f1c17;
+  --ink-rgb: 239 231 214;
+  --ink: rgb(var(--ink-rgb));
+  --ink-2: rgb(var(--ink-rgb) / 0.7);
+  --ink-3: rgb(var(--ink-rgb) / 0.52);
+  /* Edition yellow: focus, progress and the one primary action. A profile may swap it for its own accent. */
+  --edition-yellow: #f2b705;
+  --edition: var(--edition-yellow);
+  --on-edition: #13110e;
+  /* Text on an ivory fill (selected chips, shift key). */
+  --on-ink: var(--ground);
+  /* House lights down: true black, the projector's own off state. */
+  --lights-out: #000;
+  /* Something went wrong. Never used for focus or emphasis. */
+  --alert: #ff9a7a;
+  /* Volume past 100%: amplified sound, a warning colour that is not an error. */
+  --boost: #ff4d4d;
+  --shadow: rgb(0 0 0 / 0.6);
+  --art-outline: oklch(1 0 0 / 0.1);
+
+  color-scheme: dark;
+}
+
+/* Profile accents (Perfil → Aparência; prefs.ts sets `data-accent`). Tailwind 400s: light enough for on-edition text.
+   Keep in step with profile/accents.ts. */
+:root[data-accent='orange'] {
+  --edition: var(--color-orange-400);
+}
+:root[data-accent='rose'] {
+  --edition: var(--color-rose-400);
+}
+:root[data-accent='violet'] {
+  --edition: var(--color-violet-400);
+}
+:root[data-accent='sky'] {
+  --edition: var(--color-sky-400);
+}
+:root[data-accent='emerald'] {
+  --edition: var(--color-emerald-400);
+}
+
+/* The room is always dark, so coss `dark:` styles always apply. */
+@custom-variant dark (&:is(*));
+
+@theme static {
+  /* No breakpoints: 1rem is 1/120 of the screen, so nothing reflows (and the coss `sm:` sizes stay off). */
+  --breakpoint-*: initial;
+  --font-sans: 'Archivo Variable', system-ui, sans-serif;
+  /* One ease for every CSS transition. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-art: 0.35rem;
+  --radius-key: 0.45rem;
+  --radius-panel: 0.5rem;
+
+  /* Type scale for ten feet: 1rem is 16px at 1080p, so nothing that carries meaning sits under ~20px. */
+  --text-label: 1.2rem; /* tracked uppercase labels */
+  --text-hint: 1.3rem; /* button hints, statuses, captions */
+  --text-meta: 1.45rem; /* facts, field names, controls */
+  --text-body: 1.6rem; /* synopses, verdicts */
+  --text-lead: 1.85rem; /* the cópia line */
+  --text-title-s: 3.25rem;
+  --text-title: 4.5rem;
+  --text-display: 5.75rem;
+}
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-ground-deep: var(--ground-deep);
+  --color-ground-raised: var(--ground-raised);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-edition: var(--edition);
+  --color-on-edition: var(--on-edition);
+  --color-alert: var(--alert);
+
+  /* coss semantic tokens, cast onto the room. */
+  --color-background: var(--ground);
+  --color-foreground: var(--ink);
+  --color-primary: var(--edition);
+  --color-primary-foreground: var(--on-edition);
+  --color-secondary: rgb(var(--ink-rgb) / 0.12);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: rgb(var(--ink-rgb) / 0.07);
+  --color-muted-foreground: var(--ink-2);
+  --color-accent: rgb(var(--ink-rgb) / 0.08);
+  --color-accent-foreground: var(--ink);
+  --color-popover: var(--ground-raised);
+  --color-popover-foreground: var(--ink);
+  --color-border: rgb(var(--ink-rgb) / 0.12);
+  --color-input: rgb(var(--ink-rgb) / 0.25);
+  --color-ring: var(--edition);
+  --color-destructive: var(--alert);
+  --color-destructive-foreground: var(--alert);
+}
+
+@layer base {
+  /* 1rem = 1/120 of the screen width: 16px at 1080p, 32px at 4K, the same composition everywhere. */
+  html {
+    font-size: calc(100vw / 120);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* CIH projector (Perfil → Vídeo): a 2.39:1 screen shows only the 16:9 panel's middle band, so the whole
+     composition shrinks into it, centred ((16/9)/2.39), and the masking above and below stays black.
+     A scaled #root also holds every fixed layer inside it. The player overlay keeps its transparent ground. */
+  html[data-cih]:not(.is-player) {
+    background: #000;
+  }
+
+  html[data-cih] body {
+    background: transparent;
+  }
+
+  html[data-cih] #root {
+    scale: 0.7439;
+  }
+
+  html[data-cih]:not(.is-player) #root {
+    background: var(--ground);
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-size: var(--text-body);
+    line-height: 1.4;
+    font-kerning: normal;
+    -webkit-font-smoothing: antialiased;
+    /* A remote-driven kiosk: stray drags shouldn't paint selections over the art. Fields stay selectable. */
+    user-select: none;
+  }
+
+  input {
+    user-select: text;
+  }
+
+  /* Big Picture hides the pointer only while the pad is in use: a mouse user must still see where they point. */
+  body.is-bigpicture.is-pad {
+    cursor: none;
+  }
+
+  ::selection {
+    background: var(--edition);
+    color: var(--on-edition);
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  button:focus-visible {
+    outline: 0.2rem solid var(--edition);
+    outline-offset: 0.3rem;
+  }
+}
+
+/* Screens and their parts. Utilities (and the coss components) sit in a later layer and win over these. */
+@layer components {
+.tnum,
+.entry-meta,
+.entry-no,
+.detail-facts,
+.copy-row-facts,
+.rail-status,
+.search-note {
+  font-variant-numeric: tabular-nums;
+}
+
+.ico {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+  flex: none;
+}
+
+.btn-glyph {
+  display: inline-block;
+  width: 1.45em;
+  height: 1.45em;
+  flex: none;
+  vertical-align: middle;
+}
+
+.btn-glyph.pill {
+  width: 2.4em;
+}
+
+.boot {
+  height: 100%;
+  background: var(--ground);
+}
+
+/* Covers, tiles, episodes and choices are real buttons (preflight strips their chrome). */
+.poster,
+.rail-tile,
+.episode {
+  text-align: start;
+  cursor: pointer;
+}
+
+/* ---------- Room: ambilight and scrims ---------- */
+
+.ambilight {
+  position: fixed;
+  inset: 0;
+  transition: opacity 1.4s var(--ease-out);
+  pointer-events: none;
+}
+
+.ambilight canvas {
+  position: absolute;
+  inset: -4%;
+  width: 108%;
+  height: 108%;
+  transition: opacity 1.2s var(--ease-out);
+}
+
+/* Vignette keeps the colour in the room's middle; grain breaks up banding in the upscaled field. */
+.room-scrim {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    linear-gradient(to top, rgb(var(--ground-rgb) / 0.97) 0%, rgb(var(--ground-rgb) / 0.75) 16%, rgb(var(--ground-rgb) / 0) 36%),
+    linear-gradient(to bottom, rgb(var(--ground-rgb) / 0.85) 0%, rgb(var(--ground-rgb) / 0) 14%),
+    radial-gradient(120% 90% at 50% 40%, rgb(var(--ground-rgb) / 0) 30%, rgb(var(--ground-rgb) / 0.7) 100%);
+}
+
+/* ---------- Home ---------- */
+
+.home {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+.running-head {
+  position: absolute;
+  top: 2.6rem;
+  left: 3.5rem;
+  right: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 3;
+}
+
+.running-section {
+  color: var(--edition);
+  font-size: var(--text-label);
+  font-weight: 700;
+  font-stretch: 110%;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Hint strips: 0.45rem inside a hint (_components/hint.tsx), 0.9rem more between hints.
+   The key is one ink step brighter than its words, so the eye finds the button first. */
+.running-hints,
+.detail-hints,
+.sheet-hints,
+.entry-actions,
+.episodes-hints {
+  display: flex;
+  align-items: center;
+  gap: 1.35rem;
+  color: var(--ink-3);
+  font-size: var(--text-hint);
+  --hint-key: var(--ink-2);
+}
+
+/* What the focused title does, on the baseline where the eye rests: brighter than the navigation hints. */
+.entry-actions {
+  margin-top: 0.9rem;
+  color: var(--ink-2);
+  --hint-key: var(--ink);
+}
+
+/* The wall: three rows of covers, positioned absolutely, sliding as one sheet. */
+.wall {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+
+.wall-sheet {
+  position: absolute;
+  inset: 0;
+}
+
+/* Focus is the highest-frequency interaction: it answers in 150ms. Dwell, which is rare, takes its time. */
+.poster {
+  position: absolute;
+  display: block;
+  aspect-ratio: 2 / 3;
+  transition: transform 0.15s var(--ease-out);
+}
+
+.poster-art {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-art);
+  overflow: hidden;
+  background: var(--ground-raised);
+  box-shadow: 0 0.6rem 1.4rem -0.6rem var(--shadow);
+}
+
+.poster-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Depth, not chrome: every cover but the focused one sits back in the dark. */
+.poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-art);
+  background: var(--ground-deep);
+  opacity: 0.45;
+  transition: opacity 0.15s var(--ease-out);
+  pointer-events: none;
+}
+
+.poster.is-loading {
+  background: var(--ground-raised);
+  border-radius: var(--radius-art);
+  opacity: 0.55;
+}
+
+.poster.is-loading::after {
+  display: none;
+}
+
+.poster.is-focused {
+  transform: scale(1.12);
+  z-index: 2;
+}
+
+.poster.is-focused::after {
+  opacity: 0;
+}
+
+.poster.is-focused .poster-art {
+  box-shadow: 0 1.6rem 3rem -0.8rem rgb(0 0 0 / 0.8);
+}
+
+.is-dwelling .poster,
+.is-dwelling .poster::after {
+  transition-duration: 0.6s;
+}
+
+.is-dwelling .poster::after {
+  opacity: 0.68;
+}
+
+.is-dwelling .poster.is-focused {
+  transform: scale(1.15);
+}
+
+.is-dwelling .poster.is-focused::after {
+  opacity: 0;
+}
+
+.focus-mark {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -0.85rem;
+  height: 0.26rem;
+  /* Clamps to half the height: a pill. */
+  border-radius: var(--radius-art);
+  background: var(--edition);
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition:
+    transform 0.15s var(--ease-out),
+    opacity 0.15s var(--ease-out);
+}
+
+.is-focused > .focus-mark {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+/* Artwork edge: a hairline keeps dark posters from dissolving into the dark room. */
+.poster-art,
+.rail-art,
+.episode-art,
+.detail-poster {
+  outline: 1px solid var(--art-outline);
+  outline-offset: -1px;
+}
+
+/* Typeset cover when an addon has no artwork: the entry's own title, set like the catalogue. */
+.cover-typeset {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding: 1rem;
+  background: var(--ground-raised);
+}
+
+.cover-typeset span {
+  font-size: var(--text-meta);
+  font-weight: 800;
+  font-stretch: 68%;
+  line-height: 0.95;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.cover-typeset small {
+  color: var(--ink-3);
+  font-size: var(--text-hint);
+}
+
+/* Continuar */
+.rail {
+  position: absolute;
+  left: 3.5rem;
+  right: 0;
+  z-index: 2;
+}
+
+.rail-track {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.rail-tile {
+  display: block;
+  flex: none;
+  width: 18rem;
+}
+
+.rail-art {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-art);
+  overflow: hidden;
+  background: var(--ground-raised);
+  transition: transform 0.15s var(--ease-out);
+  box-shadow: 0 0.6rem 1.4rem -0.6rem var(--shadow);
+}
+
+.rail-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rail-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ground-deep);
+  opacity: 0.45;
+  transition: opacity 0.15s var(--ease-out);
+}
+
+.rail-tile.is-focused .rail-art {
+  transform: scale(1.06);
+  box-shadow: 0 1.4rem 2.6rem -0.8rem rgb(0 0 0 / 0.8);
+}
+
+.rail-tile.is-focused .rail-art::after {
+  opacity: 0;
+}
+
+.rail-meter {
+  height: 0.22rem;
+  margin-top: 0.75rem;
+  border-radius: var(--radius-art);
+  background: rgb(var(--ink-rgb) / 0.16);
+  overflow: hidden;
+}
+
+.rail-meter span {
+  display: block;
+  height: 100%;
+  background: var(--edition);
+  transform-origin: left;
+  transition: transform 0.6s var(--ease-out);
+}
+
+.rail-meter span.is-download {
+  background: var(--ink);
+}
+
+.rail-meter.is-empty {
+  background: transparent;
+}
+
+/* "T2 E5 · Título" set on the still, so the series name below stays whole. */
+.rail-episode {
+  position: absolute;
+  left: 0.7rem;
+  bottom: 0.6rem;
+  right: 0.7rem;
+  z-index: 1;
+  font-size: var(--text-hint);
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 0.1rem 0.6rem rgb(0 0 0 / 0.9);
+}
+
+/* No still: the typeset name moves up, out of the episode's way. */
+.rail-art:has(.rail-episode) .cover-typeset {
+  justify-content: flex-start;
+}
+
+.rail-art:has(.rail-episode) img {
+  mask-image: linear-gradient(to top, rgb(0 0 0 / 0.45), #000 55%);
+}
+
+.rail-text {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.55rem;
+}
+
+.rail-title {
+  font-size: var(--text-meta);
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rail-tile.is-focused .rail-title {
+  color: var(--edition);
+}
+
+.rail-status {
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The baseline: the focused entry, always on the same line. Dwell fills its right half. */
+.entry {
+  position: absolute;
+  left: 3.5rem;
+  right: 3.5rem;
+  bottom: 2.75rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 46rem);
+  column-gap: 4rem;
+  align-items: end;
+  z-index: 3;
+}
+
+.entry-main {
+  min-width: 0;
+}
+
+.entry-line {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+}
+
+.entry-no {
+  flex: none;
+  color: var(--ink-3);
+  font-size: var(--text-hint);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.entry-title {
+  min-width: 0;
+  font-size: var(--text-title);
+  font-weight: 800;
+  font-stretch: 66%;
+  line-height: 0.95;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-meta {
+  margin-top: 0.75rem;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entry-more {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+}
+
+/* Clamped here on purpose: the full synopsis and credits are one press away, on the entry page. */
+.entry-synopsis {
+  font-size: var(--text-body);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: pretty;
+}
+
+.entry-credits {
+  margin-top: 0.6rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Entry (detail) ---------- */
+
+.detail {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--ground);
+}
+
+.detail-backdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+}
+
+/* Left and bottom carry the text; the top band keeps the hints readable over a bright sky, as on the wall. */
+.detail-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgb(var(--ground-rgb) / 0.8) 0%, rgb(var(--ground-rgb) / 0) 16%),
+    linear-gradient(90deg, rgb(var(--ground-rgb) / 0.97) 0%, rgb(var(--ground-rgb) / 0.9) 28%, rgb(var(--ground-rgb) / 0.45) 60%, rgb(var(--ground-rgb) / 0.2) 100%),
+    linear-gradient(0deg, rgb(var(--ground-rgb) / 0.96) 0%, rgb(var(--ground-rgb) / 0) 50%);
+}
+
+.detail-poster {
+  position: absolute;
+  left: 3.5rem;
+  bottom: 3.5rem;
+  width: 19.5rem;
+  aspect-ratio: 2 / 3;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: var(--ground-raised);
+  box-shadow: 0 2rem 4rem -1rem rgb(0 0 0 / 0.85);
+  z-index: 2;
+}
+
+.detail-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-info {
+  position: absolute;
+  left: 27rem;
+  right: 0;
+  bottom: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-right: 5rem;
+}
+
+.detail-logo {
+  max-height: 8.5rem;
+  max-width: 36rem;
+  object-fit: contain;
+  object-position: left bottom;
+  margin-bottom: 1.4rem;
+  filter: drop-shadow(0 0.5rem 1rem rgb(0 0 0 / 0.5));
+}
+
+.detail-title {
+  max-width: 60rem;
+  margin-bottom: 1.2rem;
+  font-size: var(--text-display);
+  font-weight: 800;
+  font-stretch: 64%;
+  line-height: 0.9;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.detail-facts {
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+}
+
+.detail-synopsis {
+  max-width: 62ch;
+  margin-top: 1.1rem;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* Series beside their episodes: two lines, with Y reading the rest. */
+.detail-synopsis.is-short {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.detail-credits {
+  max-width: 70ch;
+  margin-top: 0.7rem;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  text-wrap: pretty;
+}
+
+.detail-hints {
+  position: absolute;
+  top: 2.6rem;
+  right: 3.5rem;
+  z-index: 3;
+}
+
+.copy-block {
+  margin-top: 2.25rem;
+}
+
+.copy-episode {
+  margin-bottom: 0.7rem;
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.copy-spec {
+  font-size: var(--text-lead);
+  font-weight: 650;
+}
+
+.copy-label {
+  margin-right: 1rem;
+  color: var(--edition);
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  vertical-align: 0.2em;
+}
+
+.copy-verdict {
+  max-width: 64ch;
+  margin-top: 0.35rem;
+  color: var(--ink-2);
+  font-size: var(--text-body);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+
+/* Episodes: the track slides left past the info column's edge; clip only that side so it never runs under the poster. */
+.episodes {
+  margin-top: 2rem;
+  width: 100%;
+  clip-path: inset(-6rem -100vw -6rem -1.25rem);
+}
+
+.episode-track {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.episode {
+  flex: none;
+  width: 18rem;
+}
+
+.episode-art {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-art);
+  overflow: hidden;
+  background: var(--ground-raised);
+  transition: transform 0.15s var(--ease-out);
+}
+
+.episode-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.episode-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ground-deep);
+  opacity: 0.5;
+  transition: opacity 0.15s var(--ease-out);
+}
+
+.episode.is-focused .episode-art {
+  transform: scale(1.06);
+  box-shadow: 0 1.4rem 2.6rem -0.8rem rgb(0 0 0 / 0.8);
+}
+
+.episode.is-focused .episode-art::after {
+  opacity: 0;
+}
+
+.episode.is-watched .episode-art img {
+  opacity: 0.6;
+}
+
+.episode-check {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0.3rem;
+  border-radius: 50%;
+  background: rgb(var(--ground-rgb) / 0.75);
+  color: var(--ink);
+  z-index: 1;
+}
+
+.episode-title {
+  margin-top: 0.55rem;
+  font-size: var(--text-hint);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.episode-title .tnum {
+  color: var(--ink-3);
+  font-weight: 700;
+  margin-right: 0.3rem;
+}
+
+.episode.is-focused .episode-title {
+  color: var(--edition);
+}
+
+.episode.is-focused .episode-title .tnum {
+  color: inherit;
+}
+
+.episodes-hints {
+  margin-top: 1.4rem;
+  color: var(--ink-2);
+  --hint-key: var(--ink);
+}
+
+.episodes-note {
+  margin-top: 2rem;
+}
+
+/* ---------- Sheets: cópias (titles, subs and hints are shared with Perfil and Bem-vindo) ---------- */
+
+.sheet {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 56rem;
+  padding: 4rem 3.5rem 8rem;
+  background: var(--ground-deep);
+  box-shadow: -1.5rem 0 4rem var(--shadow);
+  z-index: 20;
+  overflow: hidden;
+}
+
+.sheet-title {
+  font-size: var(--text-title-s);
+  font-weight: 800;
+  font-stretch: 66%;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.sheet-sub {
+  margin-top: 0.6rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+}
+
+/* Welcome: the mark turns in once, like a kaleidoscope's tube; a new picture or colour pops the avatar. */
+.welcome-mark {
+  animation: welcome-turn 1.4s var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+.welcome-avatar {
+  animation: welcome-pop 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+@keyframes welcome-turn {
+  from {
+    opacity: 0;
+    transform: rotate(-120deg) scale(0.6);
+  }
+}
+
+@keyframes welcome-pop {
+  from {
+    transform: scale(0.86);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-mark,
+  .welcome-avatar {
+    animation: none;
+  }
+}
+
+.sheet-hints {
+  position: absolute;
+  left: 3.5rem;
+  bottom: 3rem;
+}
+
+/* Title, a list that takes every row of height left, the verdict, the hints: nothing overlaps the list. */
+.sheet.copies {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 3rem;
+}
+
+.copies-list {
+  flex: 1;
+  min-height: 0;
+  margin-top: 2rem;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  /* Rows fade at the edges, so a cut row reads as "more this way". */
+  mask-image: linear-gradient(to bottom, transparent, #000 1rem, #000 calc(100% - 2rem), transparent);
+  padding-block: 0.5rem;
+}
+
+.copies .sheet-hints {
+  position: static;
+  margin-top: 1.5rem;
+}
+
+.copy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1.5rem;
+  align-content: center;
+  height: 5.5rem;
+  padding: 0 1.25rem;
+  border-radius: 0.5rem;
+}
+
+.copy-row-spec {
+  font-size: var(--text-meta);
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copy-row-facts {
+  grid-column: 1;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copy-row-tag {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--ink-2);
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.copy-row.is-uncached,
+.copy-row.is-unplayable,
+.copy-row.is-dead {
+  opacity: 0.5;
+}
+
+.copy-row.is-focused {
+  background: var(--edition);
+  color: var(--on-edition);
+  opacity: 1;
+}
+
+.copy-row.is-focused .copy-row-facts,
+.copy-row.is-focused .copy-row-tag {
+  color: rgb(var(--ground-rgb) / 0.75);
+}
+
+/* Two lines held open, so the hints don't jump as the focused cópia changes. */
+.copies-verdict {
+  min-height: calc(2 * 1.4em);
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(var(--ink-rgb) / 0.1);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  line-height: 1.4;
+}
+
+/* ---------- Search ---------- */
+
+.search {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: var(--ground);
+}
+
+.search-query {
+  position: absolute;
+  top: 6.25rem;
+  left: 3.5rem;
+  right: 3.5rem;
+}
+
+.search-query input {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-title);
+  font-weight: 800;
+  font-stretch: 66%;
+  line-height: 1.1;
+  text-transform: uppercase;
+  caret-color: var(--edition);
+}
+
+.search-query input:focus {
+  outline: none;
+}
+
+.search-query input::placeholder {
+  color: var(--ink-3);
+}
+
+.search .keyboard {
+  position: absolute;
+  top: 14rem;
+  left: 3.5rem;
+  width: 33rem;
+}
+
+.search-results {
+  position: absolute;
+  top: 13.25rem;
+  left: 40rem;
+  right: 0;
+  bottom: 12rem;
+  overflow: hidden;
+}
+
+.search-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 11.5rem);
+  gap: 2.25rem 1.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.poster.in-grid {
+  position: relative;
+}
+
+.search-note {
+  padding: 0.75rem 1rem;
+  color: var(--ink-2);
+  font-size: var(--text-body);
+}
+
+.search-note.is-count {
+  padding-block: 0 0.25rem;
+  color: var(--ink-3);
+  font-size: var(--text-hint);
+}
+
+/* ---------- Errors ---------- */
+
+.notice-region {
+  position: fixed;
+  left: 50%;
+  bottom: 3rem;
+  z-index: 60;
+  translate: -50% 0;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  max-width: 72rem;
+  padding: 1.1rem 1.7rem;
+  border-radius: 0.5rem;
+  background: var(--ground-raised);
+  box-shadow: 0 1rem 2.5rem -0.5rem var(--shadow);
+  font-size: var(--text-meta);
+}
+
+.notice-icon {
+  width: 1.6em;
+  height: 1.6em;
+  flex: none;
+  color: var(--alert);
+}
+
+/* ---------- House lights ---------- */
+
+.lights {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: var(--lights-out);
+  text-align: center;
+}
+
+.lights-title {
+  max-width: 80rem;
+  font-size: var(--text-title);
+  font-weight: 800;
+  font-stretch: 66%;
+  line-height: 0.95;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.lights-label {
+  margin-top: 1rem;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+}
+
+.lights-status {
+  margin-top: 3rem;
+  color: var(--ink-3);
+  font-size: var(--text-hint);
+}
+
+.lights-status {
+  --hint-key: var(--ink-2);
+}
+
+.lights-status .hint {
+  margin-left: 1rem;
+}
+
+/* Outside an open drawer: a click there closes it. Fixed in the app, absolute in the player's own window. */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background: rgb(0 0 0 / 0.35);
+  cursor: pointer;
+}
+
+.player .drawer-scrim {
+  position: absolute;
+  z-index: auto;
+}
+
+/* ---------- Notifications ---------- */
+
+.toasts {
+  position: fixed;
+  right: 3rem;
+  bottom: 3rem;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.8rem;
+  list-style: none;
+  pointer-events: none;
+}
+
+.toasts.is-top {
+  top: 6.5rem;
+  bottom: auto;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 30rem;
+  padding: 1rem 1.3rem;
+  border-radius: var(--radius-panel);
+  background: rgb(31 28 23 / 0.96);
+  box-shadow:
+    0 0 0 1px rgb(var(--ink-rgb) / 0.08),
+    0 1.2rem 2.4rem -0.8rem rgb(0 0 0 / 0.7);
+  /* The accent edge says where it came from at a glance, like a console's system toast. */
+  border-left: 0.3rem solid var(--edition);
+}
+
+.toast.is-error {
+  border-left-color: var(--alert);
+}
+
+.toast-icon {
+  width: 2rem;
+  height: 2rem;
+  flex: none;
+  color: var(--edition);
+  stroke-width: 1.75;
+}
+
+.toast.is-error .toast-icon {
+  color: var(--alert);
+}
+
+.toast-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.toast-title {
+  font-size: var(--text-meta);
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.toast-body {
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Player overlay (its own transparent window over mpv) ---------- */
+
+/* The overlay window shows the picture under it: nothing here may paint an opaque ground. */
+html.is-player,
+html.is-player body {
+  background: transparent;
+}
+
+.player {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  --hint-key: var(--ink);
+}
+
+.player.is-idle {
+  cursor: none;
+}
+
+.player-stage {
+  position: absolute;
+  inset: 0;
+}
+
+/* Scrims only where the chrome sits, so the middle of the picture stays untouched. */
+.player-chrome {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / 0.72), rgb(0 0 0 / 0.3) 9rem, transparent 15rem),
+    linear-gradient(to top, rgb(0 0 0 / 0.82), rgb(0 0 0 / 0.4) 12rem, transparent 21rem);
+}
+
+.player-chrome > * {
+  pointer-events: auto;
+}
+
+.player-top {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 2rem 3rem 0 2rem;
+}
+
+.player-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.player-title {
+  font-size: var(--text-lead);
+  font-weight: 750;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-episode {
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-ends {
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+}
+
+/* The bottom padding leaves room for a control's name under it. */
+.player-bottom {
+  padding: 0 3rem 3.6rem;
+}
+
+.player-timeline {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.player-time {
+  min-width: 5.5rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+}
+
+.player-time:last-child {
+  text-align: right;
+}
+
+.player-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.player-hints {
+  display: flex;
+  gap: 1.5rem;
+  margin-right: 1rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+}
+
+/* A control: icon in a round hit area; focus fills it with ink, the name shows underneath. */
+.player-control {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4rem;
+  flex: none;
+  border-radius: 50%;
+  color: var(--ink);
+  transition:
+    background-color 0.15s var(--ease-out),
+    color 0.15s var(--ease-out),
+    scale 0.15s var(--ease-out);
+}
+
+.player-control svg {
+  width: 2.2rem;
+  height: 2.2rem;
+  stroke-width: 1.75;
+}
+
+.player-control:hover {
+  background: rgb(var(--ink-rgb) / 0.14);
+}
+
+.player-control:active {
+  scale: 0.96;
+}
+
+.player-control.is-focused {
+  background: var(--ink);
+  color: var(--on-ink);
+  scale: 1.08;
+}
+
+.player-control.is-primary {
+  width: 4.6rem;
+  height: 4.6rem;
+  background: rgb(var(--ink-rgb) / 0.16);
+}
+
+.player-control.is-primary svg {
+  fill: currentColor;
+}
+
+/* A play triangle's visual centre sits left of its box: nudge it, here and on the next-episode still. */
+.player-control .lucide-play,
+.next-up-play .lucide-play {
+  translate: 0.12rem 0;
+}
+
+.player-control.is-primary.is-focused {
+  background: var(--edition);
+  color: var(--on-edition);
+}
+
+/* Names hang below the control: above, the bottom row's would cover the timeline's times. */
+.player-tip {
+  position: absolute;
+  top: calc(100% + 0.7rem);
+  left: 50%;
+  translate: -50% -0.3rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-key);
+  background: rgb(0 0 0 / 0.78);
+  color: var(--ink);
+  font-size: var(--text-hint);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s var(--ease-out),
+    translate 0.15s var(--ease-out);
+}
+
+.player-control:hover .player-tip,
+.player-control.is-focused .player-tip {
+  opacity: 1;
+  translate: -50% 0;
+}
+
+/* Timeline */
+.seek {
+  position: relative;
+  flex: 1;
+  height: 2.4rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.seek-track {
+  position: relative;
+  width: 100%;
+  height: 0.3rem;
+  border-radius: 1rem;
+  background: rgb(var(--ink-rgb) / 0.22);
+  overflow: hidden;
+  transition: height 0.15s var(--ease-out);
+}
+
+.seek:hover .seek-track,
+.seek.is-focused .seek-track {
+  height: 0.55rem;
+}
+
+.seek-ahead,
+.seek-played,
+.seek-segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.seek-ahead {
+  background: rgb(var(--ink-rgb) / 0.3);
+}
+
+/* Openings and credits: a lighter stretch, so the skip button's promise is visible on the line. */
+.seek-segment {
+  background: rgb(var(--ink-rgb) / 0.22);
+}
+
+.seek-played {
+  background: var(--edition);
+}
+
+.seek-notch {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.2rem;
+  translate: -50% 0;
+  background: rgb(0 0 0 / 0.55);
+}
+
+.seek-thumb {
+  position: absolute;
+  top: 50%;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  background: var(--edition);
+  translate: -50% -50%;
+  scale: 0;
+  transition: scale 0.15s var(--ease-out);
+  box-shadow: 0 0 0 0.35rem rgb(0 0 0 / 0.25);
+}
+
+.seek:hover .seek-thumb,
+.seek.is-focused .seek-thumb {
+  scale: 1;
+}
+
+.seek-preview {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  translate: -50% 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-key);
+  background: rgb(0 0 0 / 0.78);
+  font-size: var(--text-hint);
+  pointer-events: none;
+}
+
+/* Volume */
+.player-volume {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: 0.6rem;
+}
+
+.volume-track {
+  position: relative;
+  width: 12rem;
+  height: 2.4rem;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.volume-track::before,
+.volume-level {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0.3rem;
+  margin-top: -0.15rem;
+  border-radius: 1rem;
+}
+
+/* The empty track: the normal half in faint ink, the amplified half in faint red. */
+.volume-track::before {
+  background: linear-gradient(to right, rgb(var(--ink-rgb) / 0.22) 50%, color-mix(in oklab, var(--boost) 32%, transparent) 50%);
+}
+
+/* 100%: a notch where normal ends. */
+.volume-mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.2rem;
+  height: 0.9rem;
+  border-radius: 0.1rem;
+  background: rgb(var(--ink-rgb) / 0.55);
+  translate: -50% -50%;
+}
+
+.volume-thumb.is-boosted,
+.volume-value.is-boosted {
+  color: var(--boost);
+}
+
+.volume-thumb.is-boosted {
+  background: var(--boost);
+}
+
+.volume-level {
+  background: var(--ink);
+  transform-origin: left;
+}
+
+.volume-thumb {
+  position: absolute;
+  top: 50%;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: var(--ink);
+  translate: -50% -50%;
+}
+
+.volume-value {
+  min-width: 4rem;
+  margin-left: 0.4rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+}
+
+/* Loading: the title's still, dimmed, until the first frame. */
+.player-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--lights-out);
+  text-align: center;
+}
+
+.player-loading img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.32;
+}
+
+.player-loading-text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.player-loading-spinner {
+  width: 3.4rem;
+  height: 3.4rem;
+  margin-bottom: 2rem;
+  color: var(--edition);
+}
+
+.player-loading-title {
+  max-width: 80rem;
+  font-size: var(--text-title);
+  font-weight: 800;
+  font-stretch: 66%;
+  line-height: 0.95;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.player-loading-episode {
+  margin-top: 0.8rem;
+  font-size: var(--text-lead);
+  font-weight: 650;
+}
+
+.player-loading-status {
+  margin-top: 1.5rem;
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+}
+
+.player-buffering,
+.player-flash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  width: 7rem;
+  height: 7rem;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.45);
+  pointer-events: none;
+}
+
+.player-buffering svg,
+.player-flash svg {
+  width: 3.4rem;
+  height: 3.4rem;
+}
+
+.player-flash svg {
+  fill: currentColor;
+}
+
+/* Bottom right, above the controls when they show: skip and next-episode. */
+.player-corner {
+  position: absolute;
+  right: 3rem;
+  bottom: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  transition: translate 0.35s var(--ease-out);
+}
+
+.player-corner.is-raised {
+  translate: 0 -9rem;
+}
+
+.player-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  height: 4.4rem;
+  padding: 0 1.4rem 0 1.6rem;
+  border-radius: var(--radius-panel);
+  border: 0.15rem solid rgb(var(--ink-rgb) / 0.55);
+  background: rgb(0 0 0 / 0.6);
+  font-size: var(--text-meta);
+  font-weight: 650;
+  transition:
+    background-color 0.15s var(--ease-out),
+    color 0.15s var(--ease-out),
+    scale 0.15s var(--ease-out);
+}
+
+.player-skip svg:first-child {
+  width: 1.6rem;
+  height: 1.6rem;
+  stroke-width: 2; /* beside semibold text */
+}
+
+.player-skip:hover {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.player-skip:active {
+  scale: 0.96;
+}
+
+.next-up {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  width: 46rem;
+  padding: 1.2rem;
+  /* Concentric with the still inside: its radius plus the padding. */
+  border-radius: calc(var(--radius-art) + 1.2rem);
+  background: rgb(12 11 9 / 0.88);
+  box-shadow: 0 1.5rem 3rem -1rem rgb(0 0 0 / 0.7);
+}
+
+.next-up-still {
+  position: relative;
+  flex: none;
+  width: 18rem;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-art);
+  overflow: hidden;
+  background: var(--ground-raised);
+  outline: 1px solid var(--art-outline);
+  outline-offset: -1px;
+}
+
+.next-up-still img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.next-up-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 0.35);
+}
+
+.next-up-play > svg:not(.next-up-ring) {
+  width: 2.4rem;
+  height: 2.4rem;
+  fill: currentColor;
+}
+
+.next-up-ring {
+  position: absolute;
+  width: 5.6rem;
+  height: 5.6rem;
+  rotate: -90deg;
+}
+
+.next-up-ring circle {
+  fill: rgb(0 0 0 / 0.45);
+  stroke: var(--edition);
+  stroke-width: 2.5;
+  stroke-dasharray: 138.2;
+  stroke-dashoffset: 0;
+  animation: next-up-drain linear forwards;
+}
+
+@keyframes next-up-drain {
+  to {
+    stroke-dashoffset: 138.2;
+  }
+}
+
+.next-up-kicker {
+  color: var(--edition);
+  font-size: var(--text-hint);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.next-up-title {
+  margin-top: 0.3rem;
+  font-size: var(--text-meta);
+  font-weight: 650;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.next-up-hints {
+  display: flex;
+  gap: 1.4rem;
+  margin-top: 0.9rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+}
+
+.player-toast {
+  position: absolute;
+  left: 3rem;
+  bottom: 3rem;
+  max-width: 50rem;
+  padding: 0.8rem 1.2rem;
+  border-radius: var(--radius-panel);
+  background: rgb(0 0 0 / 0.75);
+  font-size: var(--text-hint);
+}
+
+.player-toast.is-error {
+  color: var(--alert);
+}
+
+/* Side panels: audio and subtitles, episodes. */
+.player-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 3rem 2.6rem 2.2rem;
+  background: rgb(12 11 9 / 0.94);
+  box-shadow: -2rem 0 4rem rgb(0 0 0 / 0.5);
+}
+
+.player-panel.is-tracks {
+  width: 52rem;
+}
+
+.player-panel.is-episodes {
+  width: 46rem;
+}
+
+.panel-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.panel-column {
+  min-height: 0;
+  overflow: auto;
+}
+
+.panel-heading {
+  margin-bottom: 1.2rem;
+  color: var(--ink-3);
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.panel-option {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-panel);
+  color: var(--ink-2);
+  font-size: var(--text-meta);
+  text-align: left;
+}
+
+.panel-check {
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: none;
+  opacity: 0;
+}
+
+.panel-option.is-on {
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.panel-option.is-on .panel-check {
+  opacity: 1;
+  color: var(--edition);
+}
+
+.panel-option:hover,
+.panel-option.is-focused {
+  background: rgb(var(--ink-rgb) / 0.1);
+  color: var(--ink);
+}
+
+.panel-option.is-focused {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+
+.panel-option.is-focused .panel-check {
+  color: var(--on-ink);
+}
+
+.panel-empty {
+  padding: 0.85rem 1rem;
+  color: var(--ink-3);
+  font-size: var(--text-hint);
+}
+
+.panel-hints {
+  display: flex;
+  gap: 1.6rem;
+  margin-top: 1.5rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+}
+
+.panel-seasons {
+  display: flex;
+  gap: 1.4rem;
+  overflow: hidden;
+}
+
+.panel-seasons button {
+  letter-spacing: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+}
+
+.panel-seasons .is-on {
+  color: var(--edition);
+}
+
+.panel-episodes {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.panel-episode {
+  display: flex;
+  gap: 1.2rem;
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: calc(var(--radius-art) + 0.8rem);
+  text-align: left;
+}
+
+.panel-episode:hover {
+  background: rgb(var(--ink-rgb) / 0.06);
+}
+
+.panel-episode.is-focused {
+  background: rgb(var(--ink-rgb) / 0.12);
+}
+
+.panel-still {
+  position: relative;
+  flex: none;
+  width: 14rem;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-art);
+  overflow: hidden;
+  background: var(--ground-raised);
+  outline: 1px solid var(--art-outline);
+  outline-offset: -1px;
+}
+
+.panel-episode.is-focused .panel-still {
+  outline: 0.2rem solid var(--edition);
+}
+
+.panel-still img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.panel-watched,
+.panel-spinner {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0.2rem;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.6);
+}
+
+.panel-meter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.25rem;
+  background: var(--edition);
+  transform-origin: left;
+}
+
+.panel-episode-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.panel-episode-no {
+  color: var(--ink-3);
+  font-size: var(--text-hint);
+}
+
+.panel-episode.is-now .panel-episode-no {
+  color: var(--edition);
+}
+
+.panel-episode-title {
+  font-size: var(--text-meta);
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.panel-episode-overview {
+  margin-top: 0.4rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Reduced motion keeps every fade and colour change (focus still reads) but drops travel and scaling. */
+/* Leaving the player: the picture goes to black while the sound fades out (main), then mpv quits. */
+.player-curtain {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background: #000;
+}
+
+/* ---------- A film's end card (credits): the next of its collection, films like it, a rating ---------- */
+
+.end-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  padding: 1.6rem 1.8rem 1.2rem;
+  /* Concentric with the art inside: its radius plus the padding. */
+  border-radius: calc(var(--radius-art) + 1.6rem);
+  background: rgb(12 11 9 / 0.9);
+  box-shadow: 0 1.5rem 3rem -1rem rgb(0 0 0 / 0.7);
+}
+
+.end-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 2.6rem;
+}
+
+.end-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.end-kicker {
+  margin-bottom: 0.9rem;
+  color: var(--ink-2);
+  font-size: var(--text-label);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.end-posters {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.end-tile {
+  position: relative;
+  display: block;
+  flex: none;
+  cursor: pointer;
+  transition: scale 0.15s var(--ease-out);
+}
+
+.end-tile.is-still {
+  width: 19rem;
+  aspect-ratio: 16 / 9;
+}
+
+.end-tile.is-poster {
+  width: 8.6rem;
+  aspect-ratio: 2 / 3;
+}
+
+.end-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--radius-art);
+  background: var(--ground-raised);
+  outline: 1px solid var(--art-outline);
+  outline-offset: -1px;
+  box-shadow: 0 0.6rem 1.4rem -0.6rem var(--shadow);
+  transition: box-shadow 0.15s var(--ease-out);
+}
+
+.end-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Veiled until the D-pad rests on it, as on the wall. */
+.end-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ground-deep);
+  opacity: 0.45;
+  transition: opacity 0.15s var(--ease-out);
+}
+
+.end-tile.is-focused {
+  scale: 1.06;
+  z-index: 1;
+}
+
+.end-tile.is-focused .end-art {
+  box-shadow: 0 1.4rem 2.6rem -0.8rem rgb(0 0 0 / 0.8);
+}
+
+.end-tile.is-focused .end-art::after {
+  opacity: 0;
+}
+
+.end-play {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+
+.end-play svg {
+  width: 2.4rem;
+  height: 2.4rem;
+  fill: currentColor;
+}
+
+.end-play .animate-spin {
+  fill: none;
+}
+
+.end-name {
+  max-width: 28rem;
+  margin-top: 1.3rem;
+  font-size: var(--text-hint);
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.end-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.end-rate {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+}
+
+.end-hints {
+  display: flex;
+  align-items: center;
+  gap: 1.35rem;
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+  --hint-key: var(--ink);
+}
+
+/* ---------- Pré-estreia: trailers with sound before a film ---------- */
+
+.preshow {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: var(--lights-out);
+  text-align: center;
+}
+
+.preshow-card .lights-title {
+  margin-top: 1.2rem;
+}
+
+/* Over the trailer: a dark fade under the line, so it reads on any frame. */
+.preshow-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.35rem;
+  padding: 6rem 3.5rem 2.75rem;
+  background: linear-gradient(to top, rgb(0 0 0 / 0.75), transparent);
+  color: var(--ink-2);
+  font-size: var(--text-hint);
+  text-align: start;
+  --hint-key: var(--ink);
+}
+
+.preshow-next {
+  margin-right: auto;
+}
+
+/* ---------- Quem vai assistir? (launch, two or more profiles) ---------- */
+
+.who {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5.5rem;
+  background: var(--ground);
+}
+
+.who-title {
+  font-size: var(--text-title);
+  font-weight: 800;
+  font-stretch: 66%;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.who-row {
+  display: flex;
+  gap: 4.5rem;
+}
+
+.who-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6rem;
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity 0.15s var(--ease-out),
+    scale 0.15s var(--ease-out);
+}
+
+.who-person.is-focused {
+  opacity: 1;
+  scale: 1.08;
+}
+
+.who-avatar {
+  box-shadow: 0 0.6rem 1.4rem -0.6rem var(--shadow);
+  transition: box-shadow 0.15s var(--ease-out);
+}
+
+.who-person.is-focused .who-avatar {
+  box-shadow: 0 1.6rem 3rem -0.8rem rgb(0 0 0 / 0.8);
+}
+
+.who-name {
+  font-size: var(--text-lead);
+  font-weight: 650;
+}
+
+/* The focus mark grows from 40% under the name, as under a cover. */
+.who-name::after {
+  content: '';
+  display: block;
+  height: 0.26rem;
+  margin-top: 0.7rem;
+  border-radius: var(--radius-art);
+  background: var(--edition);
+  opacity: 0;
+  transform: scaleX(0.4);
+  transition:
+    transform 0.15s var(--ease-out),
+    opacity 0.15s var(--ease-out);
+}
+
+.who-person.is-focused .who-name::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-property: opacity, background-color, color, border-color !important;
+  }
+}
+}

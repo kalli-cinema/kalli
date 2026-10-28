@@ -1,0 +1,86 @@
+{
+  "name": "kalli",
+  "productName": "Kalli",
+  "version": "0.4.0",
+  "private": true,
+  "description": "Kalli: a ten-foot movie wall on top of Stremio addons, played through mpv.",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev -- --ozone-platform=x11",
+    "build": "electron-vite build",
+    "start": "electron-vite preview -- --ozone-platform=x11",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/shared/*.test.ts",
+    "dist": "node scripts/fetch-mpv.ts && electron-vite build && electron-builder"
+  },
+  "build": {
+    "files": ["out/**"],
+    "asarUnpack": ["node_modules/@kmamal/sdl/**"],
+    "extraResources": [{
+      "from": "resources/mpv",
+      "to": "mpv"
+    }],
+    "npmRebuild": false,
+    "toolsets": {
+      "appimage": "1.0.3"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "kalli-cinema",
+      "repo": "kalli",
+      "releaseType": "release"
+    },
+    "win": {
+      "target": [{
+        "target": "nsis",
+        "arch": ["x64"]
+      }]
+    },
+    "nsis": {
+      "artifactName": "Kalli-Setup-${version}.${ext}"
+    },
+    "linux": {
+      "target": [{
+        "target": "AppImage",
+        "arch": ["x64"]
+      }, {
+        "target": "deb",
+        "arch": ["x64"]
+      }],
+      "category": "AudioVideo",
+      "maintainer": "luannzin"
+    }
+  },
+  "dependencies": {
+    "7z-wasm": "1.2.0",
+    "@kmamal/sdl": "^0.11.13",
+    "electron-updater": "6.8.11",
+    "webtorrent": "^3.0.21"
+  },
+  "devDependencies": {
+    "@base-ui/react": "^1.9.0",
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "electron": "^44.9.3",
+    "electron-builder": "26.17.0",
+    "electron-vite": "^6.0.0",
+    "lucide-react": "^1.61.0",
+    "motion": "^14.6.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  },
+  "trustedDependencies": [
+    "@kmamal/sdl",
+    "node-datachannel"
+  ]
+}
